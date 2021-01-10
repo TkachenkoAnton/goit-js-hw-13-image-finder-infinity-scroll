@@ -3,31 +3,13 @@ import refs from './refs';
 import { updatePhotoMarkup, clearUl } from './markup';
 import { success, info, error } from './pnotify.js';
 
-function render(e) {
-  e.preventDefault();
-  if (apiService.query === '') {
-    refs.loadMoreBtn.classList.add('is-hiden');
-    return;
-  }
-
-  apiService
+async function dataFromServer() {
+  await apiService
     .axiosPixabayApi()
     .then(fullObj => {
       updatePhotoMarkup(fullObj);
 
-      refs.loadMoreBtn.classList.remove('is-hiden');
-
-      window.scrollTo({
-        top: document.documentElement.offsetHeight,
-        behavior: 'smooth',
-      });
-
-      if (e.type === 'submit') {
-        success({
-          title: 'Success!',
-          text: 'Look! Cute pictures uploaded!',
-        });
-      }
+      observer.observe(refs.gallery.lastElementChild);
     })
     .catch(axiosError => {
       refs.loadMoreBtn.classList.add('is-hiden');
@@ -36,6 +18,41 @@ function render(e) {
         text: axiosError,
       });
     });
+}
+
+const options = {
+  rootMargin: '-10px',
+};
+
+const callback = (entries, observer) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      dataFromServer();
+      observer.unobserve(refs.gallery.lastElementChild);
+      info({
+        text: 'More cute pictures uploaded!',
+      });
+      console.log(entry);
+    }
+  });
+};
+
+const observer = new IntersectionObserver(callback, options);
+
+function render(e) {
+  e.preventDefault();
+  if (apiService.query === '') {
+    refs.loadMoreBtn.classList.add('is-hiden');
+    return;
+  }
+  if (e.type === 'submit') {
+    success({
+      title: 'Success!',
+      text: 'Look! Cute pictures uploaded!',
+    });
+  }
+
+  dataFromServer();
 }
 
 function submitRender(e) {
@@ -48,31 +65,6 @@ function submitRender(e) {
   render(e);
 }
 
-function clickRender(e) {
-  if (refs.inputSearchForm.value === '') {
-    refs.loadMoreBtn.classList.add('is-hiden');
-    return;
-  }
-
-  if (apiService.query !== refs.inputSearchForm.value) {
-    apiService.resetPage();
-
-    clearUl();
-
-    apiService.query = refs.inputSearchForm.value;
-  }
-
-  render(e);
-
-  info({
-    text: 'More cute pictures uploaded!',
-  });
-}
-
 refs.searchForm.addEventListener('submit', e => {
   submitRender(e);
-});
-
-refs.loadMoreBtnLink.addEventListener('click', e => {
-  clickRender(e);
 });
