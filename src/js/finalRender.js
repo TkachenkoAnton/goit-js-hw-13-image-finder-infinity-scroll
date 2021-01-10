@@ -32,7 +32,6 @@ const callback = (entries, observer) => {
       info({
         text: 'More cute pictures uploaded!',
       });
-      console.log(entry);
     }
   });
 };
